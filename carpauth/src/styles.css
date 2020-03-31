@@ -1,0 +1,54 @@
+.App {
+  font-family: sans-serif;
+  text-align: center;
+}
+
+.header {
+  text-align: left;
+  margin-bottom: 20px;
+}
+
+.button {
+  display: inline-block;
+  margin-right: 10px;
+}
+
+.divider {
+  margin-bottom: 20px;
+}
+
+.menuOption {
+  text-align: left;
+  background-color: lavender;
+  margin-bottom: 20px;
+}
+
+.carpet {
+  background: #fff;
+  border: 1px solid #123;
+  float: left;
+  font-size: 24px;
+  font-weight: bold;
+  line-height: 34px;
+  height: 810px;
+  margin-right: -1px;
+  margin-top: -1px;
+  padding: 0;
+  text-align: center;
+  width: 810px;
+}
+
+.carpet-header {
+  display: flex;
+  justify-content: center;
+}
+
+#next-button {
+  display: block;
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+.right-margin {
+  margin-right: 50px;
+}
