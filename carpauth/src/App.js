@@ -84,6 +84,11 @@ function Main() {
     banking: MAX_ATTMEPTS,
     shopping: MAX_ATTMEPTS
   });
+  const [confirm, setConfirm] = useState({
+    email: false,
+    bank: false,
+    shopping: false
+  });
 
   if (state === SETTING_PASSWORD) {
     return (
@@ -101,6 +106,7 @@ function Main() {
         setState={setState}
         actualPassword={passwords[passwordType]}
         passwordType={passwordType}
+        setConfirm={() => setConfirm({ ...confirm, [passwordType]: true })}
       />
     );
   } else if (state === ENTER_PASSWORD) {
@@ -138,27 +144,35 @@ function Main() {
         resetAttempts={type =>
           setAttempts({ ...attempts, [type]: MAX_ATTMEPTS })
         }
+        confirm={Object.entries(confirm).map(p => p[1])}
       />
     );
   }
 }
 
 const entities = ["Email", "Banking", "Shopping"];
-const buttons = ["Create", "Test", "Reset"];
+const buttons = ["Create", "Test"];
 
 function Menu({
   optionsEnabled,
   setPasswordType,
   setState,
-  resetPassword,
   attempts,
-  resetAttempts,
-  setPass
+  setPass,
+  confirm
 }) {
   return (
     <>
       {entities.map((e, i) => (
-        <div key={i} className="menuOption">
+        <div
+          style={{
+            backgroundColor: optionsEnabled.includes(e.toLocaleLowerCase())
+              ? "#90EE90"
+              : "lavender"
+          }}
+          key={i}
+          className="menuOption"
+        >
           Create Password for: <b>{e}</b>
           <div>
             {buttons.map((b, i) => (
@@ -197,16 +211,6 @@ function Menu({
                       action: "Test",
                       user: userId
                     });
-                  } else if (b === "Reset") {
-                    resetAttempts(e.toLocaleLowerCase());
-                    resetPassword(e.toLocaleLowerCase());
-                    sendLog({
-                      time: new Date(),
-                      event: "Create",
-                      type: e,
-                      action: "Reset",
-                      user: userId
-                    });
                   }
                 }}
               >
@@ -223,9 +227,11 @@ function Menu({
           key={i}
           className="menuOption"
           style={{
-            backgroundColor: optionsEnabled.includes(e.toLocaleLowerCase())
-              ? "lavender"
-              : "gray"
+            backgroundColor: !(
+              confirm.filter(c => c).length === entities.length
+            )
+              ? "gray"
+              : "lavender"
           }}
         >
           Enter Password for: <b>{e}</b> (Attempts left:{" "}
@@ -252,7 +258,7 @@ function Menu({
                   user: userId
                 });
               }}
-              disabled={!optionsEnabled.includes(e.toLocaleLowerCase())}
+              disabled={!(confirm.filter(c => c).length === entities.length)}
             >
               Enter
             </button>
@@ -272,7 +278,8 @@ function CarpAuth({
   setAttempts,
   resetAttempts,
   resetPassword,
-  passwordType
+  passwordType,
+  setConfirm
 }) {
   const [level, setLevel] = useState(1);
   const [password, setPassword] = useState([]);
@@ -426,6 +433,7 @@ function CarpAuth({
                     user: userId
                   });
                 }
+                setConfirm(passwordType);
               } else {
                 setSuccess(false);
                 if (mode === ENTER) {
