@@ -22,7 +22,7 @@ function sendLog(log) {
     method: "post",
     headers: {
       "Content-type": "application/json"
-     },
+    },
     body: JSON.stringify(log)
   });
 }
@@ -227,11 +227,11 @@ function Menu({
           key={i}
           className="menuOption"
           style={{
-            backgroundColor: !(
-              confirm.filter(c => c).length === entities.length
-            )
-              ? "gray"
-              : "lavender"
+            backgroundColor:
+              !(confirm.filter(c => c).length === entities.length) ||
+              attempts[e.toLocaleLowerCase()] < MAX_ATTMEPTS
+                ? "gray"
+                : "lavender"
           }}
         >
           Enter Password for: <b>{e}</b> (Attempts left:{" "}
@@ -258,7 +258,10 @@ function Menu({
                   user: userId
                 });
               }}
-              disabled={!(confirm.filter(c => c).length === entities.length)}
+              disabled={
+                !(confirm.filter(c => c).length === entities.length) ||
+                attempts[e.toLocaleLowerCase()] < MAX_ATTMEPTS
+              }
             >
               Enter
             </button>
@@ -341,10 +344,6 @@ function CarpAuth({
                 e.preventDefault();
                 e.stopPropagation();
 
-                if (mode === ENTER) {
-                  resetAttempts();
-                  resetPassword();
-                }
                 setState(MENU);
               }}
             >
@@ -401,7 +400,7 @@ function CarpAuth({
             if (mode === CREATE) {
               return level === LEVELS.length;
             } else {
-              return squareCount[level - 1] > 0 || done;
+              return squareCount[level - 1] > 0 || level === LEVELS.length;
             }
           })()}
         >
