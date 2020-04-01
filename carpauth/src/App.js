@@ -18,13 +18,13 @@ const ENTER = 2;
 const userId = uuidv4();
 
 function sendLog(log) {
-  // fetch("http://134.117.128.144/logs", {
-  //   method: "post",
-  //   headers: {
-  //     "Content-type": "application/json"
-  //   },
-  //   body: JSON.stringify(log)
-  // });
+  fetch("http://134.117.128.144/logs", {
+    method: "post",
+    headers: {
+      "Content-type": "application/json"
+     },
+    body: JSON.stringify(log)
+  });
 }
 
 function getRandomInt(max) {
@@ -415,33 +415,38 @@ function CarpAuth({
                   }
                 }
               }
-
               if (count === MATCHES) {
                 setSuccess(true);
-                sendLog({
-                  time: new Date(),
-                  event: "Enter",
-                  action: "Success",
-                  type: passwordType,
-                  user: userId
-                });
+                if (mode === ENTER) {
+                  sendLog({
+                    time: new Date(),
+                    event: "Enter",
+                    action: "Success",
+                    type: passwordType,
+                    user: userId
+                  });
+                }
               } else {
                 setSuccess(false);
+                if (mode === ENTER) {
+                  sendLog({
+                    time: new Date(),
+                    event: "Enter",
+                    action: "Failure",
+                    type: passwordType,
+                    user: userId
+                  });
+                }
+              }
+              if (mode === ENTER) {
                 sendLog({
                   time: new Date(),
                   event: "Enter",
-                  action: "Failure",
+                  action: "End",
                   type: passwordType,
                   user: userId
                 });
               }
-              sendLog({
-                time: new Date(),
-                event: "Enter",
-                action: "End",
-                type: passwordType,
-                user: userId
-              });
 
               if (mode === ENTER) {
                 setAttempts(attempts - 1);
