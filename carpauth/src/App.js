@@ -9,7 +9,7 @@ const ENTER_PASSWORD = 3;
 const CARPET_HEIGHT = 810;
 const SQUARE_COUNT = [4, 1, 1];
 const LEVELS = [1, 2, 3];
-const MATCHES = LEVELS.reduce((acc, curr) => acc + curr);
+const MATCHES = SQUARE_COUNT.reduce((acc, curr) => acc + curr);
 const MAX_ATTMEPTS = 3;
 const CREATE = 0;
 const TEST = 1;
@@ -18,13 +18,45 @@ const ENTER = 2;
 const userId = uuidv4();
 
 function sendLog(log) {
-  fetch("http://134.117.128.144/logs", {
-    method: "post",
-    headers: {
-      "Content-type": "application/json"
-    },
-    body: JSON.stringify(log)
-  });
+  // fetch("http://134.117.128.144/logs", {
+  //   method: "post",
+  //   headers: {
+  //     "Content-type": "application/json"
+  //   },
+  //   body: JSON.stringify(log)
+  // });
+}
+
+function getRandomInt(max) {
+  return Math.floor(Math.random() * Math.floor(max));
+}
+
+function inCarpet(x, y) {
+  return !x || !y
+    ? true
+    : !(x % 3 === 1 && y % 3 === 1) && inCarpet((x / 3) | 0, (y / 3) | 0);
+}
+
+function getPassword(levels) {
+  const password = [];
+
+  for (let level = 1; level <= levels; level++) {
+    for (let sq = 0; sq < SQUARE_COUNT[level - 1]; sq++) {
+      let numOfSquare = 3 ** level;
+      let row, col;
+      do {
+        row = getRandomInt(numOfSquare);
+        col = getRandomInt(numOfSquare);
+      } while (
+        !inCarpet(row, col) ||
+        password.filter(p => p[0] === level && p[1] === row && p[2] === col)
+          .length > 0
+      );
+      password.push([level, row, col]);
+    }
+  }
+
+  return password;
 }
 
 export default function App() {
@@ -58,10 +90,8 @@ function Main() {
       <CarpAuth
         mode={CREATE}
         passwordType={passwordType}
+        actualPassword={passwords[passwordType]}
         setState={setState}
-        setPass={password =>
-          setPasswords({ ...passwords, [passwordType]: password })
-        }
       />
     );
   } else if (state === TEST_PASSWORD) {
@@ -98,6 +128,9 @@ function Main() {
 
           return "";
         })}
+        setPass={(password, passwordType) =>
+          setPasswords({ ...passwords, [passwordType]: password })
+        }
         setPasswordType={setPasswordType}
         setState={setState}
         resetPassword={type => setPasswords({ ...passwords, [type]: [] })}
@@ -119,7 +152,8 @@ function Menu({
   setState,
   resetPassword,
   attempts,
-  resetAttempts
+  resetAttempts,
+  setPass
 }) {
   return (
     <>
@@ -144,6 +178,7 @@ function Menu({
 
                   if (b === "Create") {
                     setPasswordType(e.toLocaleLowerCase());
+                    setPass(getPassword(LEVELS.length), e.toLocaleLowerCase());
                     setState(SETTING_PASSWORD);
                     sendLog({
                       time: new Date(),
@@ -230,7 +265,6 @@ function Menu({
 }
 
 function CarpAuth({
-  setPass = () => {},
   actualPassword = [],
   setState,
   mode,
@@ -245,7 +279,7 @@ function CarpAuth({
   const [squareCount, setSquareCount] = useState(SQUARE_COUNT.map(l => l));
   const [done, setDone] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [show, setShow] = useState(false);
+  const [show, setShow] = useState(mode === CREATE);
 
   return (
     <>
@@ -315,9 +349,11 @@ function CarpAuth({
           <h4 className="right-margin">Attempts left: {attempts}</h4>
         )}
         <h4 className="right-margin">Current Level: {level}</h4>
-        <h4 className="right-margin">
-          Square left to choose: {squareCount[level - 1]}
-        </h4>
+        {mode !== CREATE && (
+          <h4 className="right-margin">
+            Square left to choose: {squareCount[level - 1]}
+          </h4>
+        )}
         {mode === TEST && (
           <button
             disabled={done}
@@ -354,31 +390,23 @@ function CarpAuth({
           }}
           id="next-button"
           className="right-margin"
-          disabled={
-            (mode !== CREATE && done) ||
-            level === LEVELS.length ||
-            squareCount[level - 1] > 0
-          }
+          disabled={(() => {
+            if (mode === CREATE) {
+              return level === LEVELS.length;
+            } else {
+              return squareCount[level - 1] > 0 || done;
+            }
+          })()}
         >
           Next
         </button>
-        <button
-          id="next-button"
-          onClick={e => {
-            e.preventDefault();
-            e.stopPropagation();
+        {mode !== CREATE && (
+          <button
+            id="next-button"
+            onClick={e => {
+              e.preventDefault();
+              e.stopPropagation();
 
-            if (mode === CREATE) {
-              setPass(password);
-              setState(MENU);
-              sendLog({
-                time: new Date(),
-                event: "Create",
-                action: "Done Create",
-                type: passwordType,
-                user: userId
-              });
-            } else {
               let count = 0;
               for (let p of password) {
                 for (let ap of actualPassword) {
@@ -419,14 +447,14 @@ function CarpAuth({
                 setAttempts(attempts - 1);
               }
               setDone(true);
+            }}
+            disabled={
+              done || squareCount[level - 1] > 0 || level !== LEVELS.length
             }
-          }}
-          disabled={
-            done || squareCount[level - 1] > 0 || level !== LEVELS.length
-          }
-        >
-          Confirm
-        </button>
+          >
+            Confirm
+          </button>
+        )}
       </div>
       <Carpet
         className="carpet"
@@ -438,7 +466,11 @@ function CarpAuth({
           e.preventDefault();
           e.stopPropagation();
 
-          //If this square is selected already you can deslect by clicking it again
+          if (mode === CREATE) {
+            return;
+          }
+
+          //If this square is selected already you can deselect by clicking it again
           if (
             password.filter(p => p[0] === level && p[1] === row && p[2] === col)
               .length > 0
@@ -484,7 +516,6 @@ function CarpAuth({
 // https://rosettacode.org/wiki/Sierpinski_carpet#
 function Carpet({ password, onClick, level, actualPassword, show }) {
   let squareSize = CARPET_HEIGHT / 3 ** level;
-  let numberOfRows = CARPET_HEIGHT / squareSize; // rows and columns should be the same
   let range = (m, n) =>
     Array.from(
       {
@@ -494,28 +525,14 @@ function Carpet({ password, onClick, level, actualPassword, show }) {
     );
 
   let carpet = n => {
-      let xs = range(0, Math.pow(3, n) - 1);
-      return xs.map(x => xs.map(y => inCarpet(x, y)));
-    },
-    // https://en.wikipedia.org/wiki/Sierpinski_carpet#Construction
+    let xs = range(0, Math.pow(3, n) - 1);
+    return xs.map(x => xs.map(y => inCarpet(x, y)));
+  };
 
-    // inCarpet :: Int -> Int -> Bool
-    inCarpet = (x, y) =>
-      !x || !y
-        ? true
-        : !(x % 3 === 1 && y % 3 === 1) && inCarpet((x / 3) | 0, (y / 3) | 0);
-
-  let currentRow = 0;
   return (
     <div>
-      {carpet(level).map(line =>
-        line.map((bool, i) => {
-          const row = currentRow;
-          const col = i % numberOfRows;
-          if (col === 0) {
-            currentRow++;
-          }
-
+      {carpet(level).map((line, row) =>
+        line.map((bool, col) => {
           return (
             <>
               {col === 0 && <br />}
