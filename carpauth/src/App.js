@@ -58,7 +58,7 @@ function getPassword(levels) {
         col = getRandomInt(numOfSquare);
       } while (
         !inCarpet(row, col) ||
-        password.filter(p => p[0] === level && p[1] === row && p[2] === col)
+        password.filter(p => p[0] === level && p[1] === row && p[2] === col) // eslint-disable-line
           .length > 0
       ); // If the square is not in carpet or if the current (row, col) combination exists already
       password.push([level, row, col]);
@@ -100,6 +100,7 @@ function Main() {
     bank: false,
     shopping: false
   }); // A record of if the user has correctly entered the password in test mode (To see if they have memorized the password or not). 
+  const [enter, setEnter] = useState(false); // If true means the user has started actual testing
 
   // Password creatation view
   if (state === SETTING_PASSWORD) {
@@ -163,6 +164,8 @@ function Main() {
           setAttempts({ ...attempts, [type]: MAX_ATTMEPTS })
         }
         confirm={Object.entries(confirm).map(p => p[1])}
+        enter={enter}
+        setEnter={setEnter}
       />
     );
   }
@@ -178,7 +181,9 @@ function Menu({
   setState,
   attempts,
   setPass,
-  confirm
+  confirm,
+  enter,
+  setEnter
 }) {
   return (
     <>
@@ -202,7 +207,7 @@ function Menu({
                   if (b === "Create") {
                     return optionsEnabled.includes(e.toLocaleLowerCase());
                   } else {
-                    return !optionsEnabled.includes(e.toLocaleLowerCase());
+                    return enter || !optionsEnabled.includes(e.toLocaleLowerCase());
                   }
                 })()}
                 key={i}
@@ -269,6 +274,7 @@ function Menu({
                 // Switches to actual test mdoe
                 setState(ENTER_PASSWORD);
                 setPasswordType(e.toLocaleLowerCase());
+                setEnter(true);
                 sendLog({
                   time: new Date(),
                   event: "Create",
