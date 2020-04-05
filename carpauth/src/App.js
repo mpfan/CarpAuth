@@ -2,21 +2,27 @@ import React, { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import "./styles.css";
 
-const MENU = 0;
-const SETTING_PASSWORD = 1;
-const TEST_PASSWORD = 2;
-const ENTER_PASSWORD = 3;
-const CARPET_HEIGHT = 810;
-const SQUARE_COUNT = [4, 1, 1];
-const LEVELS = [1, 2, 3];
-const MATCHES = SQUARE_COUNT.reduce((acc, curr) => acc + curr);
-const MAX_ATTMEPTS = 3;
-const CREATE = 0;
-const TEST = 1;
-const ENTER = 2;
+// States of the application
+const MENU = 0; // Displays the menu
+const SETTING_PASSWORD = 1; // Displays the password
+const TEST_PASSWORD = 2; // Users can test to see if they have memorized the password 
+const ENTER_PASSWORD = 3; // The actual password test
 
-const userId = uuidv4();
+// Information related to the carpet
+const SQUARE_COUNT = [4, 1, 1]; // How many sqaures the user has to choose on each level
+const LEVELS = [1, 2, 3]; // The total number of levels
+const MATCHES = SQUARE_COUNT.reduce((acc, curr) => acc + curr); // How many squares the user has to choose in total
+const MAX_ATTMEPTS = 3; // The maximum attempts that the user has
+const CARPET_HEIGHT = 810; // The height of the carpet
 
+// Modes for the carpet 
+const CREATE = 0; // This mdoe means that user is in create password mode
+const TEST = 1; // This mode means that user is in test password mode
+const ENTER = 2; // This mode means that user is doing the actual test
+
+const userId = uuidv4(); // Assigns a unique user id to each user
+
+// Sends the log to the server
 function sendLog(log) {
   fetch("http://134.117.128.144/logs", {
     method: "post",
@@ -27,22 +33,25 @@ function sendLog(log) {
   });
 }
 
+// Returns a random integer bewteen 0 and max
 function getRandomInt(max) {
   return Math.floor(Math.random() * Math.floor(max));
 }
 
+// Check the given square is in the carpet
 function inCarpet(x, y) {
   return !x || !y
     ? true
     : !(x % 3 === 1 && y % 3 === 1) && inCarpet((x / 3) | 0, (y / 3) | 0);
 }
 
+// Generates a password
 function getPassword(levels) {
   const password = [];
 
   for (let level = 1; level <= levels; level++) {
     for (let sq = 0; sq < SQUARE_COUNT[level - 1]; sq++) {
-      let numOfSquare = 3 ** level;
+      let numOfSquare = 3 ** level; // The number of squares in each level depends on the level
       let row, col;
       do {
         row = getRandomInt(numOfSquare);
@@ -51,7 +60,7 @@ function getPassword(levels) {
         !inCarpet(row, col) ||
         password.filter(p => p[0] === level && p[1] === row && p[2] === col)
           .length > 0
-      );
+      ); // If the square is not in carpet or if the current (row, col) combination exists already
       password.push([level, row, col]);
     }
   }
@@ -59,6 +68,7 @@ function getPassword(levels) {
   return password;
 }
 
+// The entry point of the application
 export default function App() {
   return (
     <div className="App">
@@ -71,25 +81,27 @@ export default function App() {
   );
 }
 
+// A logical container that will toggle between the different views.
 function Main() {
-  const [state, setState] = useState();
-  const [passwordType, setPasswordType] = useState();
+  const [state, setState] = useState(); // The state of the application
+  const [passwordType, setPasswordType] = useState(); // The type of password that the user is operating on
   const [passwords, setPasswords] = useState({
     email: [],
     banking: [],
     shopping: []
-  });
+  }); // The actual passwords for each category
   const [attempts, setAttempts] = useState({
     email: MAX_ATTMEPTS,
     banking: MAX_ATTMEPTS,
     shopping: MAX_ATTMEPTS
-  });
+  }); // The attempets for each category
   const [confirm, setConfirm] = useState({
     email: false,
     bank: false,
     shopping: false
-  });
+  }); // A record of if the user has correctly entered the password in test mode (To see if they have memorized the password or not). 
 
+  // Password creatation view
   if (state === SETTING_PASSWORD) {
     return (
       <CarpAuth
@@ -99,7 +111,9 @@ function Main() {
         setState={setState}
       />
     );
-  } else if (state === TEST_PASSWORD) {
+  } 
+  // Password tesing view
+  else if (state === TEST_PASSWORD) {
     return (
       <CarpAuth
         mode={TEST}
@@ -109,7 +123,9 @@ function Main() {
         setConfirm={() => setConfirm({ ...confirm, [passwordType]: true })}
       />
     );
-  } else if (state === ENTER_PASSWORD) {
+  } 
+  // Actual password entering view
+  else if (state === ENTER_PASSWORD) {
     return (
       <CarpAuth
         mode={ENTER}
@@ -124,7 +140,9 @@ function Main() {
         resetPassword={() => setPasswords({ ...passwords, [passwordType]: [] })}
       />
     );
-  } else {
+  } 
+  // The menu view. By default this view is rendered
+  else {
     return (
       <Menu
         optionsEnabled={Object.entries(passwords).map(p => {
@@ -150,9 +168,10 @@ function Main() {
   }
 }
 
-const entities = ["Email", "Banking", "Shopping"];
-const buttons = ["Create", "Test"];
+const entities = ["Email", "Banking", "Shopping"]; // Available password category
+const buttons = ["Create", "Test"]; // Available operations for each password category 
 
+// The menu
 function Menu({
   optionsEnabled,
   setPasswordType,
@@ -163,10 +182,11 @@ function Menu({
 }) {
   return (
     <>
+      {/* Renders each password category*/}
       {entities.map((e, i) => (
         <div
           style={{
-            backgroundColor: optionsEnabled.includes(e.toLocaleLowerCase())
+            backgroundColor: optionsEnabled.includes(e.toLocaleLowerCase()) // Change background color 
               ? "#90EE90"
               : "lavender"
           }}
@@ -178,6 +198,7 @@ function Menu({
             {buttons.map((b, i) => (
               <button
                 disabled={(() => {
+                  // Disable the create option if the user has generated a password already
                   if (b === "Create") {
                     return optionsEnabled.includes(e.toLocaleLowerCase());
                   } else {
@@ -190,6 +211,7 @@ function Menu({
                   event.preventDefault();
                   event.stopPropagation();
 
+                  // Generates the password
                   if (b === "Create") {
                     setPasswordType(e.toLocaleLowerCase());
                     setPass(getPassword(LEVELS.length), e.toLocaleLowerCase());
@@ -201,7 +223,9 @@ function Menu({
                       action: "Start",
                       user: userId
                     });
-                  } else if (b === "Test") {
+                  } 
+                  // Change to test view 
+                  else if (b === "Test") {
                     setPasswordType(e.toLocaleLowerCase());
                     setState(TEST_PASSWORD);
                     sendLog({
@@ -227,7 +251,7 @@ function Menu({
           key={i}
           className="menuOption"
           style={{
-            backgroundColor:
+            backgroundColor: // Change background color
               !(confirm.filter(c => c).length === entities.length) ||
               attempts[e.toLocaleLowerCase()] < MAX_ATTMEPTS
                 ? "gray"
@@ -242,7 +266,9 @@ function Menu({
                 ev.preventDefault();
                 ev.stopPropagation();
 
+                // Switches to actual test mdoe
                 setState(ENTER_PASSWORD);
+                setPasswordType(e.toLocaleLowerCase());
                 sendLog({
                   time: new Date(),
                   event: "Create",
@@ -259,7 +285,9 @@ function Menu({
                 });
               }}
               disabled={
-                !(confirm.filter(c => c).length === entities.length) ||
+                /* The option is disabled if the user has not confirmed that 
+                    they memorized the password */
+                !(confirm.filter(c => c).length === entities.length) || 
                 attempts[e.toLocaleLowerCase()] < MAX_ATTMEPTS
               }
             >
@@ -273,39 +301,41 @@ function Menu({
   );
 }
 
+// The authentication component
 function CarpAuth({
   actualPassword = [],
   setState,
   mode,
   attempts,
   setAttempts,
-  resetAttempts,
-  resetPassword,
   passwordType,
   setConfirm
 }) {
-  const [level, setLevel] = useState(1);
-  const [password, setPassword] = useState([]);
-  const [squareCount, setSquareCount] = useState(SQUARE_COUNT.map(l => l));
-  const [done, setDone] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [show, setShow] = useState(mode === CREATE);
+  const [level, setLevel] = useState(1); // The current level in the carpet
+  const [password, setPassword] = useState([]); // The password that the user has entered
+  const [squareCount, setSquareCount] = useState(SQUARE_COUNT.map(l => l)); // How many squares did the user click
+  const [done, setDone] = useState(false); // Has the user done entering the password
+  const [success, setSuccess] = useState(false); // Wether or not the user has entered the password successfully  
+  const [show, setShow] = useState(mode === CREATE); // Wether or not to show the correct password. Not enabled when doing actual test
 
   return (
     <>
+    {/* If done then notify the user */}
       {done && (
         <div className="carpet-header">
           {success ? (
             <p>Authentication success</p>
           ) : (
             <>
+              {/* The user can retry if the failed given that the number of attempts is not yet 0*/}
               <p className="right-margin">Authentication failed</p>
               {attempts > 0 && (
                 <button
                   onClick={e => {
                     e.preventDefault();
                     e.stopPropagation();
-
+                    
+                    // Resets the states which lets the user to try again
                     setSquareCount(SQUARE_COUNT.map(l => l));
                     setPassword([]);
                     setLevel(1);
@@ -327,6 +357,7 @@ function CarpAuth({
           )}
         </div>
       )}
+      {/* The back button is only enabled if the user is not doing the actual test */}
       <div className="carpet-header">
         {(() => {
           if (
@@ -351,6 +382,7 @@ function CarpAuth({
             </button>
           );
         })()}
+        {/* Display different information depending which mode the user is in */}
         {mode === ENTER && (
           <h4 className="right-margin">Attempts left: {attempts}</h4>
         )}
@@ -360,6 +392,7 @@ function CarpAuth({
             Square left to choose: {squareCount[level - 1]}
           </h4>
         )}
+        {/* The show correct password option is only enabled if the user is not doing the actual test*/}
         {mode === TEST && (
           <button
             disabled={done}
@@ -375,6 +408,7 @@ function CarpAuth({
             Show Correct Password
           </button>
         )}
+        {/* Allow the user to go back to the previous level */}
         <button
           id="next-button"
           className="right-margin"
@@ -384,10 +418,11 @@ function CarpAuth({
 
             setLevel(level - 1);
           }}
-          disabled={(mode !== CREATE && done) || level === 1}
+          disabled={(mode !== CREATE && done) || level === 1} // Can only go back if not at the first level and not done entering
         >
           Previous
         </button>
+        {/* Allows the user to go to the next level */}
         <button
           onClick={e => {
             e.preventDefault();
@@ -397,6 +432,7 @@ function CarpAuth({
           id="next-button"
           className="right-margin"
           disabled={(() => {
+            // Can only go to the next level if not at the last level and not done entering the password
             if (mode === CREATE) {
               return level === LEVELS.length;
             } else {
@@ -406,6 +442,7 @@ function CarpAuth({
         >
           Next
         </button>
+        {/* Button to comfirm that password has been entered */}
         {mode !== CREATE && (
           <button
             id="next-button"
@@ -413,6 +450,7 @@ function CarpAuth({
               e.preventDefault();
               e.stopPropagation();
 
+              // Performs password checking
               let count = 0;
               for (let p of password) {
                 for (let ap of actualPassword) {
@@ -422,6 +460,7 @@ function CarpAuth({
                 }
               }
               if (count === MATCHES) {
+                // The user has entered the correct password
                 setSuccess(true);
                 if (mode === ENTER) {
                   sendLog({
@@ -456,12 +495,13 @@ function CarpAuth({
               }
 
               if (mode === ENTER) {
+                // Decreases attempts if in actual testing mode
                 setAttempts(attempts - 1);
               }
               setDone(true);
             }}
             disabled={
-              done || squareCount[level - 1] > 0 || level !== LEVELS.length
+              done || squareCount[level - 1] > 0 || level !== LEVELS.length // The user can't comfirm if password has not been entered
             }
           >
             Confirm
@@ -487,6 +527,7 @@ function CarpAuth({
             password.filter(p => p[0] === level && p[1] === row && p[2] === col)
               .length > 0
           ) {
+            // Decrease square count
             setSquareCount(
               squareCount.map((c, i) => {
                 if (i === level - 1) {
@@ -496,6 +537,7 @@ function CarpAuth({
                 return c;
               })
             );
+            // Deselects the square
             setPassword([
               ...password.filter(p => {
                 if (p[0] === level) {
@@ -506,9 +548,11 @@ function CarpAuth({
             ]);
             return;
           } else if (squareCount[level - 1] === 0) {
+            // Can's select more squares if the square count has been met in each level
             return;
           }
 
+          // Increase the square count if a square is selected
           setSquareCount(
             squareCount.map((c, i) => {
               if (i === level - 1) {
@@ -525,9 +569,10 @@ function CarpAuth({
   );
 }
 
-// https://rosettacode.org/wiki/Sierpinski_carpet#
+// This component renders the carpet
 function Carpet({ password, onClick, level, actualPassword, show }) {
-  let squareSize = CARPET_HEIGHT / 3 ** level;
+  let squareSize = CARPET_HEIGHT / 3 ** level; // The size of the square
+  // Generates the coordinates for the carpet
   let range = (m, n) =>
     Array.from(
       {
@@ -536,6 +581,7 @@ function Carpet({ password, onClick, level, actualPassword, show }) {
       (_, i) => m + i
     );
 
+  // Generates the carpet
   let carpet = n => {
     let xs = range(0, Math.pow(3, n) - 1);
     return xs.map(x => xs.map(y => inCarpet(x, y)));
@@ -572,6 +618,8 @@ function Carpet({ password, onClick, level, actualPassword, show }) {
     </div>
   );
 }
+
+// Renders a single square. The color changes depending on the state
 function Square({ onClick, squareSize, filled, selected, show }) {
   let color = "lavender";
   if (!filled) {
